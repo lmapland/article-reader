@@ -31,9 +31,19 @@ def parse_article(fn)
   article_text = ""
   html = File.open("output/#{fn}.txt") { |f| Nokogiri::HTML(f) }
 
-  html.css('.StoryBodyCompanionColumn').each do |e|
-    e.children.children.each do |i|
-      article_text << i.content.to_s << "\n\n"
+  type1 = html.css('.StoryBodyCompanionColumn')
+  if !type1.empty?
+    type1.each do |e|
+      e.children.children.each do |i|
+        article_text << i.content.to_s << "\n\n"
+      end
+    end
+  else
+    type2 = html.css('.g-fg', '.g-body')
+    if !type2.empty?
+      type2.each do |e|
+        article_text << e.content.to_s << "\n\n"
+      end
     end
   end
 
