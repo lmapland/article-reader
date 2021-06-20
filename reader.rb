@@ -2,6 +2,48 @@ require 'optparse'
 require 'net/http'
 require 'uri'
 require 'time'
+require 'nokogiri'
+
+def get_article(opts)
+  # Get the article
+  res = Net::HTTP.get URI(opts[:article])
+
+  # Choose a file name to write the file to
+  # Turn an invalid filename into a valid one
+  fn = opts[:name]
+  if fn.nil?
+    fn = Time.new.to_i
+  else
+    fn.gsub!(/[^0-9A-Za-z.\-]/, '_')
+  end
+
+  # Write article to file
+  f = File.open("output/#{fn}.txt", "w")
+  f.write(res)
+  f.close
+
+  puts "URL data has been written to #{fn}.txt"
+  return "#{fn}"
+end
+
+def parse_article(fn)
+  # Parse file into text
+  article_text = ""
+  html = File.open("output/#{fn}.txt") { |f| Nokogiri::HTML(f) }
+
+  html.css('.StoryBodyCompanionColumn').each do |e|
+    e.children.children.each do |i|
+      article_text << i.content.to_s << "\n\n"
+    end
+  end
+
+  # Write parsed text into file
+  f = File.open("output/#{fn}_text.txt", "w")
+  f.write(article_text)
+  f.close
+
+  puts "Article has been parsed to output/#{fn}_text.txt"
+end
 
 # Set up options
 options = {}
@@ -25,23 +67,6 @@ if options[:article].nil?
   exit 1
 end
 
-# Get the article
-res = Net::HTTP.get URI(options[:article])
+fn = get_article(options)
 
-# Choose a file name to write the file to
-# Turn an invalid filename into a valid one
-fn = options[:name]
-if fn.nil?
-  fn = Time.new.to_i
-else
-  fn.gsub!(/[^0-9A-Za-z.\-]/, '_')
-end
-
-fn << ".txt"
-
-# Write article to file
-f = File.open("output/#{fn}", "w")
-f.write(res)
-f.close
-
-puts "URL data has been written to #{fn}"
+parse_article(fn)
